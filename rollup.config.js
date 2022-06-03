@@ -5,26 +5,33 @@ const packageJson = require('./package.json');
 
 function getDevBuildMetadata() {
 	const now = new Date();
-	return now.toISOString().replace(/:\d+\..+/g, '').replace(/[-T:]/g, '');
+	return now
+		.toISOString()
+		.replace(/:\d+\..+/g, '')
+		.replace(/[-T:]/g, '');
 }
 
 function getCurrentVersion() {
 	const isDev = process.env.BUILD_TAG !== 'release';
-	return `${packageJson.version}` + (isDev ? `-dev+${getDevBuildMetadata()}` : '');
+	return (
+		`${packageJson.version}` + (isDev ? `-dev+${getDevBuildMetadata()}` : '')
+	);
 }
 
 const currentVersion = getCurrentVersion();
 
 function getConfig(inputFile, type, isProd) {
 	const isModular = type === 'module';
-	const suffix = isModular ? 'esm' : 'standalone';
+	const suffix = isModular ? 'umd' : 'standalone';
 	const mode = isProd ? 'production' : 'development';
 
 	const config = {
 		input: inputFile,
 		output: {
-			format: isModular ? 'esm' : 'iife',
+			name: 'lightweight-charts',
+			format: isModular ? 'umd' : 'iife',
 			file: `./dist/lightweight-charts.${suffix}.${mode}.js`,
+			extend: true,
 			banner: `
 /*!
  * @license
@@ -39,25 +46,28 @@ function getConfig(inputFile, type, isProd) {
 				preventAssignment: true,
 				values: {
 					// make sure that this values are synced with src/typings/globals/index.d.ts
-					'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+					'process.env.NODE_ENV': JSON.stringify(
+						isProd ? 'production' : 'development'
+					),
 					'process.env.BUILD_VERSION': JSON.stringify(currentVersion),
 				},
 			}),
-			isProd && terser({
-				output: {
-					comments: /@license/,
-					// eslint-disable-next-line camelcase
-					inline_script: true,
-				},
-				mangle: {
-					module: (type === 'module'),
-					properties: {
-						regex: /^_(private|internal)_/,
+			isProd &&
+				terser({
+					output: {
+						comments: /@license/,
+						// eslint-disable-next-line camelcase
+						inline_script: true,
 					},
-				},
-			}),
+					mangle: {
+						module: type === 'module',
+						properties: {
+							regex: /^_(private|internal)_/,
+						},
+					},
+				}),
 		],
-		external: id => isModular && /^fancy-canvas(\/.+)?$/.test(id),
+		external: (id) => isModular && /^fancy-canvas(\/.+)?$/.test(id),
 	};
 
 	return config;

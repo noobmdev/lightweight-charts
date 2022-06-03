@@ -2,8 +2,8 @@
 
 module.exports = [
 	{
-		name: 'ESM',
-		path: 'dist/lightweight-charts.esm.production.js',
+		name: 'UMD',
+		path: 'dist/lightweight-charts.umd.production.js',
 		limit: '43.05 KB',
 	},
 	{
